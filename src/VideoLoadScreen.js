@@ -8,6 +8,7 @@ import ShowResults from "./ShowResults.js"
 import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js";
 import CursorPlugin from "wavesurfer.js/dist/plugin/wavesurfer.cursor.min.js";
 import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js';
+import MiniMapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js';
 // import { wait } from "@testing-library/user-event/dist/utils";
 // import { toHaveStyle } from "@testing-library/jest-dom/dist/matchers";
 // import { TbRectangle } from "react-icons/tb";
@@ -61,6 +62,7 @@ class VideoLoadScreen extends Component {
         this.waveSurferRef = createRef();
         this.waveFormRef = createRef();
         this.timeLineRef = createRef();
+        this.miniMapRef = createRef();
         this.videoRef = createRef();
         this.figureRef = createRef();
         this.canvasRef = createRef();
@@ -201,6 +203,13 @@ class VideoLoadScreen extends Component {
                     showCursor: true,
                     opacity: 1,
                 }),
+                MiniMapPlugin.create({ 
+                    wavesurfer: this.waveSurferRef.current,
+                    container: this.miniMapRef.current,
+                    waveColor: '#777',
+                    progressColor: '#222',
+                    height: 20
+                }),
             ]
           });
         
@@ -333,9 +342,10 @@ class VideoLoadScreen extends Component {
         // if there are more than two regions, then prevent more regions from being added
         let regions = this.waveSurferRef.current.regions.list;
         let keys = Object.keys(regions)
-        if (keys.length >= 2) {
-            regions[keys[0]].remove()
-            alert("You can only create two regions")
+        if (keys.length >= 1) {
+            // regions[keys[0]].remove()
+            alert("You can only create one regions")
+            region.remove()
         }
 
     }
@@ -1060,6 +1070,7 @@ class VideoLoadScreen extends Component {
                                             //top: "-50%",
                                         }}/>
                     <div id="wave-timeline" ref={this.timeLineRef} style = {{width: "75%",}}></div>
+                    <div id="wave-minimap" ref={this.miniMapRef} style = {{width: "75%",}}></div>
 
                 </div>
 
