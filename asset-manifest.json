@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/face_tracking/static/css/main.491a1fa1.css",
+    "main.js": "/face_tracking/static/js/main.6decaf38.js",
+    "static/js/787.0faf1463.chunk.js": "/face_tracking/static/js/787.0faf1463.chunk.js",
+    "index.html": "/face_tracking/index.html",
+    "main.491a1fa1.css.map": "/face_tracking/static/css/main.491a1fa1.css.map",
+    "main.6decaf38.js.map": "/face_tracking/static/js/main.6decaf38.js.map",
+    "787.0faf1463.chunk.js.map": "/face_tracking/static/js/787.0faf1463.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.491a1fa1.css",
+    "static/js/main.6decaf38.js"
+  ]
+}
