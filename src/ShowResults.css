@@ -1,0 +1,29 @@
+.container{
+    width : 100%;
+    margin-top : 50px;
+    align-content: center;
+    text-align: center;
+    position: relative;
+}
+.topLine {
+    width: 50%;
+    border : 5px solid #bdbec0;
+    border-radius: 5px;
+   }
+   
+.plot{
+    background-color: #bdbec00d;
+    width: 75%;
+    margin-top: 30px;
+    position: relative
+}
+
+.signal-selector{
+    width: 100%;
+    height : auto; 
+    background: white;
+    display: flex;
+    justify-content: center;
+    margin: 10px 10px 10px 0px;
+    min-width: 500px;
+    }
