@@ -14,7 +14,7 @@ import VideoLoadScreen from './VideoLoadScreen';
 function App() {
 
   useEffect(() => {
-    document.title = 'Hand Tracking'
+    document.title = 'Face Tracking'
 }, []);
 
 

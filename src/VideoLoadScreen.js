@@ -44,6 +44,8 @@ const noseTip = [44,1,274]
 const centerLowerLip = [84,17,314]
 const centerJaw = [148,152,377]
 const lipsInner = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324,318,402,317,14,87,178,88,95]
+const rightEye = [[33, 133], [160, 144], [159, 145], [158, 153]]
+const leftEye = [[263, 362], [387, 373], [386, 374], [385, 380]] 
 
 
 class VideoLoadScreen extends Component {
@@ -123,18 +125,21 @@ class VideoLoadScreen extends Component {
         this.distanceNoseRightEyebrow = []
         this.distanceEyeCanthus = []
 
-        this.distances = {  areaMouth : [],
-                            distanceNoseLowerLip : [],
-                            distanceNoseJaw : [],
-                            distanceNoseLeftEyebrow : [],
-                            distanceNoseRightEyebrow : [],    
-                            distanceEyeCanthus : [],
-                            timeStamp : []
-                        }
-        this.landmarks = {
-                            landmarks : [],
-                            timeStamp: []
-                        }
+        // this.distances = [{  areaMouth : [],
+        //                     distanceNoseLowerLip : [],
+        //                     distanceNoseJaw : [],
+        //                     distanceNoseLeftEyebrow : [],
+        //                     distanceNoseRightEyebrow : [],    
+        //                     distanceEyeCanthus : [],
+        //                     timeStamp : []
+        //                 }]
+        // this.landmarks = [{
+        //                     landmarks : [],
+        //                     timeStamp: []
+        //                 }]
+
+        this.distances = []
+        this.landmarks = []
 
         // //this variable will store the estimated distnace between thumb and index 
         // this.distanceThumbIndex = [{leftDistance : [ ],
@@ -221,7 +226,7 @@ class VideoLoadScreen extends Component {
 
           // create a way to remove regions by double click and prevent more than two regions
           this.waveSurferRef.current.on('region-dblclick', this.handleRegionDoubleClick)   
-          this.waveSurferRef.current.on('region-created', this.handleRegionCreated)
+        //   this.waveSurferRef.current.on('region-created', this.handleRegionCreated)
 
         //   // mount the worker that will process the data +
         //   if (this.webWorker === null) {
@@ -335,20 +340,20 @@ class VideoLoadScreen extends Component {
     handleRegionDoubleClick = (region) => {
         //remove the region when double click on it :->
         this.waveSurferRef.current.regions.list[region.id].remove()
-
+        console.log(this.waveSurferRef.current.regions.list)
     }
 
-    handleRegionCreated = (region) => {
-        // if there are more than two regions, then prevent more regions from being added
-        let regions = this.waveSurferRef.current.regions.list;
-        let keys = Object.keys(regions)
-        if (keys.length >= 1) {
-            // regions[keys[0]].remove()
-            alert("You can only create one regions")
-            region.remove()
-        }
+    // handleRegionCreated = (region) => {
+    //     // if there are more than two regions, then prevent more regions from being added
+    //     let regions = this.waveSurferRef.current.regions.list;
+    //     let keys = Object.keys(regions)
+    //     if (keys.length >= 1) {
+    //         // regions[keys[0]].remove()
+    //         alert("You can only create one regions")
+    //         region.remove()
+    //     }
 
-    }
+    // }
 
     componentWillUnmount = () => {
         window.addEventListener('beforeunload', (event) => {
@@ -616,18 +621,57 @@ class VideoLoadScreen extends Component {
         this.setState({showResults:false})
 
 
-        this.distances = {  areaMouth : [],
-                            distanceNoseLowerLip : [],
-                            distanceNoseJaw : [],
-                            distanceNoseLeftEyebrow : [],
-                            distanceNoseRightEyebrow : [],    
-                            distanceEyeCanthus : [],
-                            timeStamp : []
-                        }
-        this.landmarks = {
-                            landmarks : [],
-                            timeStamp: []
-                        }
+        // this.distances = [{  areaMouth : [],
+        //                     distanceNoseLowerLip : [],
+        //                     distanceNoseJaw : [],
+        //                     distanceNoseLeftEyebrow : [],
+        //                     distanceNoseRightEyebrow : [],    
+        //                     distanceEyeCanthus : [],
+        //                     timeStamp : []
+        //                 }]
+        // this.landmarks = [{
+        //                     landmarks : [],
+        //                     timeStamp: []
+        //                 }]
+
+        this.distances = []
+        this.landmarks = []
+
+        //prepare variables to store data
+
+        // prepare at least for one region
+        this.distances.push({   areaMouth : [],
+                                distanceNoseLowerLip : [],
+                                distanceNoseJaw : [],
+                                distanceNoseLeftEyebrow : [],
+                                distanceNoseRightEyebrow : [],  
+                                eyeAspectRatioLeft : [],
+                                eyeAspectRatioRight : [],
+                                distanceEyeCanthus : [],
+                                timeStamp : []
+                            })
+        this.landmarks.push({
+                                landmarks : [],
+                                timeStamp: []
+                            })
+        //add more regions if needed
+        for (var i = 1; i < Object.keys(this.waveSurferRef.current.regions.list).length; i++ )
+        {
+            this.distances.push({   areaMouth : [],
+                                    distanceNoseLowerLip : [],
+                                    distanceNoseJaw : [],
+                                    distanceNoseLeftEyebrow : [],
+                                    distanceNoseRightEyebrow : [],   
+                                    eyeAspectRatioLeft : [],
+                                    eyeAspectRatioRight : [], 
+                                    distanceEyeCanthus : [],
+                                    timeStamp : []
+                                })
+            this.landmarks.push({
+                                    landmarks : [],
+                                    timeStamp: []
+                                })
+        }
 
         // only works if there is a video
         this.handlePause()
@@ -770,6 +814,18 @@ class VideoLoadScreen extends Component {
 
     }
 
+
+    getEyeAspectRatio = (landmarks, eye) => {
+
+        let distances = []
+        eye.forEach(item => {
+            distances.push(this.getDistanceBetweenPoints(landmarks, [item[0]], [item[1]]))
+        })
+
+        return (distances[1]+distances[2]+distances[3])/(3*distances[0])
+
+    }
+
     getPolyArea = (landmarks, polyIndex) => {
 
         var polygon = []
@@ -800,18 +856,19 @@ class VideoLoadScreen extends Component {
 
                 if (faceLandmarks.length == 1) {
                         if (faceLandmarks[0].keypoints){
-                            //this.distanceNoseLoweLip.push(this.getDistanceNoseLoweLip(faceLandmarks[0].keypoints)).
 
-                            this.distances.distanceEyeCanthus.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, rightCanthus, leftCanthus))
-                            this.distances.distanceNoseJaw.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, centerJaw))
-                            this.distances.distanceNoseLowerLip.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, centerLowerLip))
-                            this.distances.distanceNoseLeftEyebrow.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, leftEyebrow))
-                            this.distances.distanceNoseRightEyebrow.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, rightEyebrow))
-                            this.distances.areaMouth.push(this.getPolyArea(faceLandmarks[0].keypoints,lipsInner))
-                            this.distances.timeStamp.push(video.currentTime)
+                            this.distances[this.currentRegion].distanceEyeCanthus.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, rightCanthus, leftCanthus))
+                            this.distances[this.currentRegion].distanceNoseJaw.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, centerJaw))
+                            this.distances[this.currentRegion].distanceNoseLowerLip.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, centerLowerLip))
+                            this.distances[this.currentRegion].distanceNoseLeftEyebrow.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, leftEyebrow))
+                            this.distances[this.currentRegion].distanceNoseRightEyebrow.push(this.getDistanceBetweenPoints(faceLandmarks[0].keypoints, noseTip, rightEyebrow))
+                            this.distances[this.currentRegion].eyeAspectRatioLeft.push(this.getEyeAspectRatio(faceLandmarks[0].keypoints, leftEye))
+                            this.distances[this.currentRegion].eyeAspectRatioRight.push(this.getEyeAspectRatio(faceLandmarks[0].keypoints, rightEye))
+                            this.distances[this.currentRegion].areaMouth.push(this.getPolyArea(faceLandmarks[0].keypoints,lipsInner))
+                            this.distances[this.currentRegion].timeStamp.push(video.currentTime)
 
-                            this.landmarks.landmarks.push(faceLandmarks[0].keypoints)
-                            this.landmarks.timeStamp.push(faceLandmarks[0].keypoints)
+                            this.landmarks[this.currentRegion].landmarks.push(faceLandmarks[0].keypoints)
+                            this.landmarks[this.currentRegion].timeStamp.push(faceLandmarks[0].keypoints)
 
                         }
         
@@ -841,7 +898,13 @@ class VideoLoadScreen extends Component {
                     }
                 }
 
-            }
+            } else {
+                // the process is finished 
+                this.setState({cancelled: true},
+                    () => {
+                    this.processVideoButtonTag.current.innerHTML = 'Process'
+                    this.handleFinishProcessingVideo()
+                }) }
     }
 
     }
@@ -872,15 +935,17 @@ class VideoLoadScreen extends Component {
 
 
         // find average intercanthal distance
-        const interCanthalDistance = average(this.distances.distanceEyeCanthus)
-        this.distances.distanceNoseJaw = dividebyValue(this.distances.distanceNoseJaw,interCanthalDistance)
-        this.distances.distanceNoseLeftEyebrow = dividebyValue(this.distances.distanceNoseLeftEyebrow ,interCanthalDistance)
-        this.distances.distanceNoseRightEyebrow = dividebyValue(this.distances.distanceNoseRightEyebrow,interCanthalDistance)
-        this.distances.distanceNoseLowerLip = dividebyValue(this.distances.distanceNoseLowerLip ,interCanthalDistance)
-        this.distances.areaMouth = normalizeArray(this.distances.areaMouth)
+        // const interCanthalDistance = average(this.distances.distanceEyeCanthus)
+        // this.distances.distanceNoseJaw = dividebyValue(this.distances.distanceNoseJaw,interCanthalDistance)
+        // this.distances.distanceNoseLeftEyebrow = dividebyValue(this.distances.distanceNoseLeftEyebrow ,interCanthalDistance)
+        // this.distances.distanceNoseRightEyebrow = dividebyValue(this.distances.distanceNoseRightEyebrow,interCanthalDistance)
+        // this.distances.distanceNoseLowerLip = dividebyValue(this.distances.distanceNoseLowerLip ,interCanthalDistance)
+        // this.distances.areaMouth = normalizeArray(this.distances.areaMouth)
 
-        console.log('landmarks', this.landmarks)
-        console.log('distance', this.distances)
+        // console.log('landmarks', this.landmarks)
+        // console.log('distance', this.distances)
+
+        console.log(this.distances.length)
         this.ctx.clearRect(0, 0, this.canvasRef.current.width, this.canvasRef.current.height);
         if (this.startX !== null) {
             //draw rectangle
@@ -1066,7 +1131,7 @@ class VideoLoadScreen extends Component {
                                             margin: "auto", 
                                             marginTop: "10px", 
                                             marginBottom: "10px",
-                                            // transform: "translateY(-100%)",
+                                            transform: "translateY(-100%)",
                                             //top: "-50%",
                                         }}/>
                     <div id="wave-timeline" ref={this.timeLineRef} style = {{width: "75%",}}></div>

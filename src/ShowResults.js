@@ -3,8 +3,8 @@ import React, { Component, createRef, useState, useEffect, useMemo, useCallback 
 import  "./ShowResults.css";
 import Plot from 'react-plotly.js'
 
-// import {minimal_find_peaks} from './findpeaks.js'
-import { average, getStandardDeviation, lowPassFilter, difftoNumber} from "./utils";
+
+import { average, getStandardDeviation, lowPassFilter, dividebyValue, areaPolygon, normalizeArray} from "./utils";
 import { toHaveDescription, toHaveStyle } from "@testing-library/jest-dom/dist/matchers";
 // import filter from "plotly.js/lib/filter";
 
@@ -26,11 +26,16 @@ class ShowResults extends Component {
         this.canvasRef = createRef();
         this.plot = createRef();
         this.signalSelect = createRef();
+        this.regionSelect = createRef();
 
         this.plotLabel = ''
 
-        this.data = []
-        this.timeStamp = []
+
+
+        this.data = this.props.distances
+        this.dataProcessed = []
+        this.timeStamp = this.props.distances.timeStamp
+        this.currentPlotRegion = 0
 
         this.frameRate = this.props.frameRate
         this.fileName = this.props.fileName
@@ -49,9 +54,9 @@ class ShowResults extends Component {
           });
 
         // set labels 
-
+        this.processInputData()
         this.handleProcessInputData()
-        this.handleFilterData()
+        // this.handleFilterData()
     }
 
     componentWillUnmount = () => {
@@ -84,10 +89,22 @@ class ShowResults extends Component {
 
     }
 
-    handleCreateSelectItems = () => {
+    handleCreateSelectRegions = () => {
+
+        let items = [];         
+        for (let i = 0; i <= this.data.length-1; i++) {      
+           {items.push(<option key={i} value={i}>Region {i+1}</option>);}       
+            //here I will be creating my options dynamically based on
+            //what props are currently passed to the parent component
+        }
+        return items;
+
+    }
+
+    handleCreateSelectSignals = () => {
 
 
-        let keys = Object.keys(this.props.distances)
+        let keys = Object.keys(this.data[0])
 
         let items = [];         
         for (let i = 0; i <= keys.length-1; i++) {      
@@ -98,18 +115,57 @@ class ShowResults extends Component {
         return items;
     }
 
+
+
+    processInputData = () => {
+        const numRegions = this.data.length 
+        var interCanthalDistanceRegions = []
+
+        //get the intercanthal distance by finding the average for all the regions
+        this.data.forEach(item => {
+            interCanthalDistanceRegions.push(average(item.distanceEyeCanthus))
+        })
+        const interCanthalDistance = average(interCanthalDistanceRegions)
+        //process the input data
+        this.data.forEach((item,idx) => {
+            //
+            this.dataProcessed.push({   areaMouth : [],
+                                        distanceNoseLowerLip : [],
+                                        distanceNoseJaw : [],
+                                        distanceNoseLeftEyebrow : [],
+                                        distanceNoseRightEyebrow : [],   
+                                        eyeAspectRatioLeft : [],
+                                        eyeAspectRatioRight : [], 
+                                        distanceEyeCanthus : [],
+                                        timeStamp : []
+                                    })
+
+            this.dataProcessed[idx].areaMouth = normalizeArray(item.areaMouth);lowPassFilter(this.dataProcessed[idx].areaMouth, 10, this.frameRate,1)
+            this.dataProcessed[idx].distanceNoseLowerLip = dividebyValue(item.distanceNoseLowerLip ,interCanthalDistance);lowPassFilter(this.dataProcessed[idx].distanceNoseLowerLip, 10, this.frameRate,1)
+            this.dataProcessed[idx].distanceNoseJaw = dividebyValue(item.distanceNoseJaw ,interCanthalDistance);lowPassFilter(this.dataProcessed[idx].distanceNoseJaw, 10, this.frameRate,1)
+            this.dataProcessed[idx].distanceNoseLeftEyebrow = dividebyValue(item.distanceNoseLeftEyebrow ,interCanthalDistance);lowPassFilter(this.dataProcessed[idx].distanceNoseLeftEyebrow , 10, this.frameRate,1)
+            this.dataProcessed[idx].distanceNoseRightEyebrow = dividebyValue(item.distanceNoseRightEyebrow ,interCanthalDistance);lowPassFilter(this.dataProcessed[idx].distanceNoseRightEyebrow, 10, this.frameRate,1)
+            this.dataProcessed[idx].eyeAspectRatioLeft  = dividebyValue(item.eyeAspectRatioLeft,1);lowPassFilter(this.dataProcessed[idx].eyeAspectRatioLeft, 10, this.frameRate,1)
+            this.dataProcessed[idx].eyeAspectRatioRight  = dividebyValue(item.eyeAspectRatioRight,1);lowPassFilter(this.dataProcessed[idx].eyeAspectRatioRight, 10, this.frameRate,1)
+            this.dataProcessed[idx].distanceEyeCanthus = dividebyValue(item.distanceEyeCanthus ,interCanthalDistance);lowPassFilter(this.dataProcessed[idx].distanceEyeCanthus, 10, this.frameRate,1)
+            this.dataProcessed[idx].timeStamp = item.timeStamp
+        })
+
+    }
+
     handleProcessInputData = () => {
         // update variables with data
-        this.data = this.props.distances.areaMouth
-        this.timeStamp = this.props.distances.timeStamp
+        this.dataToPlot = this.dataProcessed[this.currentPlotRegion].areaMouth
+        this.timeStamp = this.dataProcessed[this.currentPlotRegion].timeStamp
         this.plotLabel =  'areaMouth'
+        this.setState({revision : this.state.revision + 1})
     }
 
    
     handleFilterData = () => {
         // filter the signals
-        if (this.data.length > 0){
-            lowPassFilter(this.data, 10, this.frameRate,1)
+        if (this.dataToPlot.length > 0){
+            lowPassFilter(this.dataToPlot, 10, this.frameRate,1)
         }
         this.setState({revision : this.state.revision + 1})
     }
@@ -119,9 +175,23 @@ class ShowResults extends Component {
 
         //update plot 
 
-        this.data = eval('this.props.distances.'+event.target.value)
+        this.dataToPlot = this.dataProcessed[this.currentPlotRegion][event.target.value]
+        this.timeStamp = this.dataProcessed[this.currentPlotRegion].timeStamp
         this.plotLabel =  event.target.value
-        this.handleFilterData()
+        this.setState({revision : this.state.revision + 1})
+        // this.handleFilterData()
+    }
+
+    handleRegionSelectChange = (event) => {
+        
+        //update plot 
+        this.currentPlotRegion = parseInt(event.target.value)
+
+        this.dataToPlot = this.dataProcessed[this.currentPlotRegion][this.signalSelect.current.value]
+        this.timeStamp = this.dataProcessed[this.currentPlotRegion].timeStamp
+        this.plotLabel =  this.signalSelect.current.value
+        this.setState({revision : this.state.revision + 1})
+        // this.handleFilterData()
     }
 
     handleClickonPlot = (data) => {
@@ -141,22 +211,36 @@ class ShowResults extends Component {
         var fileName = null
         switch (event.target.value) {
             case 'savesignals':
-                 item = {areaMouth: this.props.distances.areaMouth,
-                        distanceNoseLowerLip : this.props.distances.distanceNoseLowerLip , 
-                        distanceNoseJaw : this.props.distances.distanceNoseJaw, 
-                        distanceNoseLeftEyebrow: this.props.distances.distanceNoseLeftEyebrow,
-                        distanceNoseRightEyebrow: this.props.distances.distanceNoseRightEyebrow,
-                        distanceEyeCanthus: this.props.distances.distanceEyeCanthus,
-                        timeStamp: this.props.distances.timeStamp
-                    }
-                 fileName = this.fileName.split(".")[0]+'-signals.json';
+
+                item = {}
+                for (let i = 0; i <= this.data.length-1; i++) { 
+                    let key = "Region_"+(i+1).toString()
+                    item[key] = this.data[i]
+                }
+
+
+                 fileName = this.fileName.split(".")[0]+'-signalsRaw.json';
+                 this.handleSave(item,fileName)
+
+
+                item = {}
+                for (let i = 0; i <= this.data.length-1; i++) { 
+                    let key = "Region_"+(i+1).toString()
+                    item[key] = this.dataProcessed[i]
+                }
+
+
+                 fileName = this.fileName.split(".")[0]+'-signalsProcessed.json';
                  this.handleSave(item,fileName)
                 break;
 
             case 'savelandmarks':
-                item =     {landmarks : this.props.landmarks.landmarks,
-                            timeStamp : this.props.landmarks.timeStamp,
-                            }
+
+                item = {}
+                for (let i = 0; i <= this.landmarks.length-1; i++) { 
+                    let key = "Region_"+(i+1).toString()
+                    item[key] = this.landmarks[i]
+                }
 
                 fileName = this.fileName.split(".")[0]+'-landmarks.json';
                 this.handleSave(item,fileName)
@@ -195,39 +279,28 @@ class ShowResults extends Component {
 
             <div className="plot">
 
-             {/* <div className="sliderPlot"  >
-                <label className="interact-label" style={{float: "left"}}>Minimum distance</label> 
-                <label className='interact-slider-value' ref={this.labelRight} style={{float: "right"}}> 0.3s </label>
-                <br/>
-                <input className="interact-slider-right" type="range" min="0" max="3" step="0.1" defaultValue="0.3" id="slider" ref={this.sliderRightRef} onChange={this.handleSliderChange}  />
-            </div> */}
 
             <div className="signal-selector">
+                    <div className='label-for-selector'>
                     <label htmlFor="signalSelect" style={{marginLeft : '10px'}}>Select Signal to Plot</label><br/>
+                    </div>
+                    <div className='selector-signal'>
                     <select id="signalSelect" defaultValue={'areaMouth'} ref={this.signalSelect} onChange={this.handleSignalSelectChange}>
-                        {this.handleCreateSelectItems()}
+                        {this.handleCreateSelectSignals()}
                     </select>
-                    {/* <Input type="select" id="signalSelect" ref={this.signalSelect} onChange={this.handleSignalSelectChange} label="Multiple Select" multiple>
-                        {this.handleCreateSelectItems()}
-                    </Input> */}
-                    {/* <select id="signalSelect" defaultValue={'50%'} ref={this.signalSelect} onChange={this.handleSignalSelectChange}>
-                        <option value="100%">100%</option>
-                        <option value="90%">90%</option>
-                        <option value="80%">80%</option>
-                        <option value="70%">70%</option>
-                        <option value="60%">60%</option>
-                        <option value="50%">50%</option>
-                        <option value="40%">40%</option>
-                        <option value="30%">30%</option>
-                        <option value="20%">20%</option>
-                        <option value="10%">10%</option>
-                    </select> */}
+                    </div>
+                    <div className='selector-region'>
+                    <select id="regionSelect" defaultValue={'Region 1'} ref={this.regionSelect} onChange={this.handleRegionSelectChange}>
+                        {this.handleCreateSelectRegions()}
+                    </select>
+                    </div>
+                 
             </div>
 
             <Plot ref={this.plot} data ={[
                 {
                 x : this.timeStamp,
-                y : this.data,
+                y : this.dataToPlot,
                 name: 'Plot',
                 type : 'scatter',
                 mode : 'lines',
@@ -235,7 +308,7 @@ class ShowResults extends Component {
                           width: 5}
                 }
             ]}
-            layout = {{height: 400, xaxis : {title: 'Time [s]'}, yaxis : {title: this.plotLabel}, title: '', font: {
+            layout = {{height: 400, xaxis : {title: 'Time [s]'}, yaxis : {autorange: true, title: this.plotLabel}, title: '', font: {
         family: 'Verdana, Geneva, sans-serif;',
         size: 16,
         color: '#7f7f7f'

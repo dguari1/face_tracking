@@ -18,7 +18,7 @@
     position: relative
 }
 
-.signal-selector{
+/* .signal-selector{
     width: 100%;
     height : auto; 
     background: white;
@@ -26,4 +26,38 @@
     justify-content: center;
     margin: 10px 10px 10px 0px;
     min-width: 500px;
+    } */
+
+.signal-selector{
+    width: 100%;
+    height : auto; 
+    background: #FFF3;
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    max-width: 250px;
+    min-width: 250px;
+    margin-bottom: 10px;
+    align-items: center; 
+    justify-content: center
     }
+
+.label-for-selector{
+    grid-column-start: 1 ;
+    grid-column-end: 3;
+    grid-row: 1;
+    align-content: center;
+}
+
+.selector-signal{
+    grid-column-start: 1;
+    grid-row-start: 2;
+    align-content: center;
+}
+
+.selector-region{
+    grid-column-start: 2;
+    grid-row-start: 2;
+    align-content: center;
+}
